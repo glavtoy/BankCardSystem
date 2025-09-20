@@ -10,9 +10,9 @@ public class SwaggerConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
-        return new OpenAPI().info(new Info()
-                .title("Bank Card System API")
-                .version("1.0")
-                .description("REST API для управления банковскими картами"));
+        return new OpenAPI()
+                .info(new Info().title("Bank Card System API")
+                        .version("1.0")
+                        .description("REST API для управления банковскими картами"));
     }
 }
