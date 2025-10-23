@@ -1,6 +1,9 @@
 package ru.glavtoy.bankcardsystem.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.List;
@@ -13,12 +16,17 @@ import java.util.List;
 @Schema(description = "Запрос для регистрации нового пользователя")
 public class RegisterRequest {
 
-    @Schema(description = "Имя пользователя", example = "john_doe", required = true)
+    @NotBlank
+    @Size(min = 3, max = 50)
+    @Schema(description = "Имя пользователя", example = "john_doe")
     private String username;
 
-    @Schema(description = "Пароль пользователя", example = "password123", required = true)
+    @NotBlank
+    @Size(min = 6, max = 100)
+    @Schema(description = "Пароль пользователя", example = "password123")
     private String password;
 
-    @Schema(description = "Список ролей пользователя", example = "[\"ROLE_USER\",\"ROLE_ADMIN\"]", required = true)
+    @NotEmpty
+    @Schema(description = "Список ролей пользователя", example = "[\"USER\",\"ADMIN\"]")
     private List<String> roles;
 }

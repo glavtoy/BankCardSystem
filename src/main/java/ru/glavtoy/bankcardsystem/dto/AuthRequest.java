@@ -1,6 +1,8 @@
 package ru.glavtoy.bankcardsystem.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Getter
@@ -11,9 +13,13 @@ import lombok.*;
 @Schema(description = "Запрос для аутентификации пользователя")
 public class AuthRequest {
 
-    @Schema(description = "Имя пользователя", example = "john_doe", required = true)
+    @NotBlank
+    @Size(min = 3, max = 50)
+    @Schema(description = "Имя пользователя", example = "john_doe")
     private String username;
 
-    @Schema(description = "Пароль пользователя", example = "password123", required = true)
+    @NotBlank
+    @Size(min = 6, max = 100)
+    @Schema(description = "Пароль пользователя", example = "password123")
     private String password;
 }

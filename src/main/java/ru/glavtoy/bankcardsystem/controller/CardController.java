@@ -2,8 +2,10 @@ package ru.glavtoy.bankcardsystem.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.glavtoy.bankcardsystem.dto.CardDTO;
 import ru.glavtoy.bankcardsystem.dto.TransferRequest;
@@ -11,6 +13,7 @@ import ru.glavtoy.bankcardsystem.entity.Card;
 import ru.glavtoy.bankcardsystem.service.CardService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cards")
@@ -27,14 +30,23 @@ public class CardController {
     }
 
     @Operation(summary = "Получить карту по ID", description = "Возвращает данные карты по её идентификатору")
+    @PreAuthorize("hasRole('ADMIN') or @cardService.isOwner(#id, principal)")
     @GetMapping("/{id}")
     public ResponseEntity<CardDTO> getCard(@PathVariable Long id) {
         return ResponseEntity.ok(cardService.getCard(id));
     }
 
+    @Operation(summary = "Получить баланс карты", description = "Возвращает баланс карты по ID")
+    @PreAuthorize("hasRole('ADMIN') or @cardService.isOwner(#id, principal)")
+    @GetMapping("/{id}/balance")
+    public ResponseEntity<Map<String, Object>> getBalance(@PathVariable Long id) {
+        CardDTO card = cardService.getCard(id);
+        return ResponseEntity.ok(Map.of("id", card.getId(), "balance", card.getBalance()));
+    }
+
     @Operation(summary = "Создать карту", description = "Создает новую карту")
     @PostMapping
-    public ResponseEntity<CardDTO> createCard(@RequestBody CardDTO cardDTO) {
+    public ResponseEntity<CardDTO> createCard(@Valid @RequestBody CardDTO cardDTO) {
         return ResponseEntity.ok(cardService.createCard(cardDTO));
     }
 
@@ -53,7 +65,7 @@ public class CardController {
 
     @Operation(summary = "Перевод между картами", description = "Выполняет перевод между картами")
     @PostMapping("/transfer")
-    public ResponseEntity<Void> transfer(@RequestBody TransferRequest request) {
+    public ResponseEntity<Void> transfer(@Valid @RequestBody TransferRequest request) {
         cardService.transfer(request);
         return ResponseEntity.ok().build();
     }

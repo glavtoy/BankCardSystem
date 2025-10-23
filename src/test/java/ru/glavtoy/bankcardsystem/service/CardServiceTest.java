@@ -9,6 +9,7 @@ import ru.glavtoy.bankcardsystem.dto.CardDTO;
 import ru.glavtoy.bankcardsystem.entity.Card;
 import ru.glavtoy.bankcardsystem.entity.User;
 import ru.glavtoy.bankcardsystem.repository.CardRepository;
+import ru.glavtoy.bankcardsystem.repository.UserRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,6 +25,9 @@ class CardServiceTest {
     @Mock
     private CardRepository cardRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private CardService cardService;
 
@@ -33,11 +37,6 @@ class CardServiceTest {
         owner.setId(1L);
         owner.setUsername("testuser");
 
-        Card card = new Card();
-        card.setNumber("1234567812345678");
-        card.setOwner(owner);
-        card.setExpiryDate(LocalDate.now().plusYears(3));
-
         Card savedCard = new Card();
         savedCard.setId(1L);
         savedCard.setNumber("1234567812345678");
@@ -46,6 +45,7 @@ class CardServiceTest {
         savedCard.setStatus(Card.Status.ACTIVE);
         savedCard.setExpiryDate(LocalDate.now().plusYears(3));
 
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(owner));
         when(cardRepository.save(any(Card.class))).thenReturn(savedCard);
 
         CardDTO inputDto = CardDTO.builder()
@@ -57,7 +57,7 @@ class CardServiceTest {
         CardDTO result = cardService.createCard(inputDto);
 
         assertNotNull(result);
-        assertEquals("1234567812345678", result.getNumber());
+        assertEquals("**** **** **** 5678", result.getNumber());
         assertEquals("ACTIVE", result.getStatus());
         assertEquals(BigDecimal.ZERO, result.getBalance());
         verify(cardRepository, times(1)).save(any(Card.class));

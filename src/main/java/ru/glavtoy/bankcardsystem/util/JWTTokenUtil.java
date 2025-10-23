@@ -1,47 +1,53 @@
 package ru.glavtoy.bankcardsystem.util;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import java.security.Key;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class JWTTokenUtil {
 
-    @Value("${jwt.secret}")
+    @Value("${JWT_SECRET:${jwt.secret}}")
     private String secret;
 
-    @Value("${jwt.lifetime}")
+    @Value("${jwt.lifetime:PT1H}")
     private Duration jwtLifetime;
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .toList();
+                .collect(Collectors.toList());
         claims.put("roles", roles);
 
-        Date starting = new Date();
-        Date ending = new Date(starting.getTime() + jwtLifetime.toMillis());
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + jwtLifetime.toMillis());
 
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(starting)
-                .setExpiration(ending)
-                .signWith(SignatureAlgorithm.HS256, secret)
+                .setIssuedAt(now)
+                .setExpiration(exp)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    private Key getSigningKey() {
+        byte[] keyBytes = Base64.getDecoder().decode(secret);
+        if (keyBytes.length < 32) {
+            throw new IllegalArgumentException("JWT ключ превышает 256 бит");
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String getUsernameByToken(String token) {
@@ -50,25 +56,31 @@ public class JWTTokenUtil {
 
     public List<String> getRolesByToken(String token) {
         Claims claims = getClaimsByToken(token);
-        if (claims.containsKey("roles")) {
-            return (List<String>) claims.get("roles");
+        List<?> rolesRaw = claims.get("roles", List.class);
+        if (rolesRaw == null) return Collections.emptyList();
+        List<String> roles = new ArrayList<>();
+        for (Object role : rolesRaw) {
+            if (!(role instanceof String)) throw new IllegalStateException("Невалидные роли токена");
+            roles.add((String) role);
         }
-        return Collections.emptyList();
+        return roles;
     }
 
-    public boolean isTokenExpired(String token) {
-        Date expiration = getClaimsByToken(token).getExpiration();
-        return expiration.before(new Date());
+    public boolean validateToken(String token, UserDetails userDetails) {
+        try {
+            Claims claims = getClaimsByToken(token);
+            return claims.getSubject().equals(userDetails.getUsername())
+                    && claims.getExpiration().after(new Date());
+        } catch (JwtException e) {
+            return false;
+        }
     }
 
     private Claims getClaimsByToken(String token) {
-        try {
-            return Jwts.parser()
-                    .setSigningKey(secret)
-                    .parseClaimsJws(token)
-                    .getBody();
-        } catch (JwtException e) {
-            throw new RuntimeException("Невалидный JWT токен: " + e.getMessage());
-        }
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

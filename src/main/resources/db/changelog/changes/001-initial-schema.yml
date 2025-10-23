@@ -44,7 +44,7 @@ databaseChangeLog:
                     primaryKey: true
                     nullable: false
               - column:
-                  name: card_number
+                  name: number
                   type: varchar(16)
                   constraints:
                     nullable: false
@@ -82,5 +82,28 @@ databaseChangeLog:
             baseTableName: cards
             baseColumnNames: owner_id
             constraintName: fk_cards_owner
+            referencedTableName: users
+            referencedColumnNames: id
+  - changeSet:
+      id: 4
+      author: dev
+      changes:
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: user_id
+            constraintName: fk_user_roles_user
             referencedTableName: users
             referencedColumnNames: id

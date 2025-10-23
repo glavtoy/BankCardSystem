@@ -5,6 +5,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.glavtoy.bankcardsystem.dto.AuthRequest;
 import ru.glavtoy.bankcardsystem.dto.AuthResponse;
 import ru.glavtoy.bankcardsystem.dto.RegisterRequest;
@@ -21,6 +22,7 @@ public class AuthService {
     private final JWTTokenUtil jwtTokenUtil;
     private final AuthenticationManager authenticationManager;
 
+    @Transactional(readOnly = true)
     public AuthResponse login(AuthRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -30,6 +32,7 @@ public class AuthService {
         return new AuthResponse(token);
     }
 
+    @Transactional
     public void register(RegisterRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Пользователь с таким именем уже существует!");

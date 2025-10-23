@@ -11,6 +11,11 @@ services:
       POSTGRES_PASSWORD: bank_pass
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank_user -d bank_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   app:
     build:
@@ -22,6 +27,10 @@ services:
       - postgres
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bank_db
+      SPRING_DATASOURCE_USERNAME: bank_user
+      SPRING_DATASOURCE_PASSWORD: bank_pass
+      JWT_SECRET: YzJmNDNkMGY4ZjE1ZDExZTgxZDRjNzYwN2E1ZDRkZGE5OTYxNzZhY2U0YmVhNzE0ZTc1N2E3ZDk4ZmU1ZjQ2ZQ==
     ports:
       - "8080:8080"
     networks:

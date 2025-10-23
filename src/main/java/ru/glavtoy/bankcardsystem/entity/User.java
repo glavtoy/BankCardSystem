@@ -36,7 +36,7 @@ public class User implements UserDetails {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
-    @Schema(description = "Список ролей пользователя", example = "[\"ROLE_USER\",\"ROLE_ADMIN\"]")
+    @Schema(description = "Список ролей пользователя", example = "[\"USER\",\"ADMIN\"]")
     private List<String> roles;
 
     @Override
