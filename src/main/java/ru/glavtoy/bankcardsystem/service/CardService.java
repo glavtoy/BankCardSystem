@@ -1,6 +1,8 @@
 package ru.glavtoy.bankcardsystem.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.glavtoy.bankcardsystem.dto.CardDTO;
@@ -13,8 +15,6 @@ import ru.glavtoy.bankcardsystem.repository.UserRepository;
 import ru.glavtoy.bankcardsystem.util.CardUtil;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,23 +24,22 @@ public class CardService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<CardDTO> getAllCards() {
-        return cardRepository.findAll().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    public Page<CardDTO> getAllCards(Pageable pageable) {
+        return cardRepository.findAll(pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
-    public List<CardDTO> getCardsByOwner(String owner) {
-        return cardRepository.findByOwnerUsernameContainingIgnoreCase(owner).stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+    public Page<CardDTO> getCardsByOwner(String owner, Pageable pageable) {
+        return cardRepository.findByOwnerUsernameContainingIgnoreCase(owner, pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
-    public boolean isOwner(Long cardId, Object principal) {
-        if (principal == null) return false;
-        String username = principal.toString();
+    public Page<CardDTO> getMyCards(String username, Pageable pageable) {
+        return cardRepository.findByOwnerUsername(username, pageable).map(this::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isOwner(Long cardId, String username) {
         return cardRepository.findById(cardId)
                 .map(card -> card.getOwner().getUsername().equals(username))
                 .orElse(false);
@@ -59,7 +58,7 @@ public class CardService {
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден!"));
 
         Card card = new Card();
-        card.setNumber(cardDTO.getNumber());
+        card.setNumber(cardDTO.getNumber().replaceAll("[\\s-]", ""));
         card.setExpiryDate(cardDTO.getExpiryDate());
         card.setOwner(owner);
         card.setStatus(Card.Status.ACTIVE);

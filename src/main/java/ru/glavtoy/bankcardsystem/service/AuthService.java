@@ -13,6 +13,8 @@ import ru.glavtoy.bankcardsystem.entity.User;
 import ru.glavtoy.bankcardsystem.repository.UserRepository;
 import ru.glavtoy.bankcardsystem.util.JWTTokenUtil;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -40,7 +42,7 @@ public class AuthService {
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .roles(request.getRoles())
+                .roles(List.of("USER"))
                 .build();
         userRepository.save(user);
     }

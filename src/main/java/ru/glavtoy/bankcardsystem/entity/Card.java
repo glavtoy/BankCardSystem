@@ -7,6 +7,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cards")
@@ -24,7 +25,7 @@ public class Card {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    @Schema(description = "Номер карты", example = "1234-5678-9876-5432")
+    @Schema(description = "Номер карты", example = "1234567812345678")
     private String number;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,6 +46,14 @@ public class Card {
     @Column(nullable = false)
     @Schema(description = "Баланс карты", example = "1000.50")
     private BigDecimal balance;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 
     public enum Status {
         ACTIVE,
