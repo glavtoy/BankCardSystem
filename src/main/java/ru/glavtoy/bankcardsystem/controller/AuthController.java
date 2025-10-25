@@ -2,10 +2,14 @@ package ru.glavtoy.bankcardsystem.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import ru.glavtoy.bankcardsystem.dto.AuthRequest;
 import ru.glavtoy.bankcardsystem.dto.AuthResponse;
 import ru.glavtoy.bankcardsystem.dto.RegisterRequest;

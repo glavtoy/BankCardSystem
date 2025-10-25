@@ -15,6 +15,7 @@ import ru.glavtoy.bankcardsystem.repository.UserRepository;
 import ru.glavtoy.bankcardsystem.util.CardUtil;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -25,17 +26,17 @@ public class CardService {
 
     @Transactional(readOnly = true)
     public Page<CardDTO> getAllCards(Pageable pageable) {
-        return cardRepository.findAll(pageable).map(this::toDto);
+        return cardRepository.findAll(pageable).map(this::toDtoWithExpiryCheck);
     }
 
     @Transactional(readOnly = true)
     public Page<CardDTO> getCardsByOwner(String owner, Pageable pageable) {
-        return cardRepository.findByOwnerUsernameContainingIgnoreCase(owner, pageable).map(this::toDto);
+        return cardRepository.findByOwnerUsernameContainingIgnoreCase(owner, pageable).map(this::toDtoWithExpiryCheck);
     }
 
     @Transactional(readOnly = true)
     public Page<CardDTO> getMyCards(String username, Pageable pageable) {
-        return cardRepository.findByOwnerUsername(username, pageable).map(this::toDto);
+        return cardRepository.findByOwnerUsername(username, pageable).map(this::toDtoWithExpiryCheck);
     }
 
     @Transactional(readOnly = true)
@@ -45,10 +46,11 @@ public class CardService {
                 .orElse(false);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CardDTO getCard(Long id) {
         Card card = cardRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Карта не найдена!"));
+        checkAndUpdateExpiry(card);
         return toDto(card);
     }
 
@@ -72,6 +74,10 @@ public class CardService {
     public CardDTO updateStatus(Long id, Card.Status status) {
         Card card = cardRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Карта не найдена!"));
+        checkAndUpdateExpiry(card);
+        if (status == Card.Status.EXPIRED) {
+            throw new IllegalArgumentException("Статус EXPIRED устанавливается автоматически");
+        }
         card.setStatus(status);
         return toDto(cardRepository.save(card));
     }
@@ -91,8 +97,11 @@ public class CardService {
 
         Card from = cardRepository.findById(request.getFromCardId())
                 .orElseThrow(() -> new NotFoundException("Карта отправителя не найдена!"));
+        checkAndUpdateExpiry(from);
+
         Card to = cardRepository.findById(request.getToCardId())
                 .orElseThrow(() -> new NotFoundException("Карта получателя не найдена!"));
+        checkAndUpdateExpiry(to);
 
         if (from.getOwner() == null || to.getOwner() == null)
             throw new IllegalArgumentException("Невозможно определить владельцев карт");
@@ -106,11 +115,27 @@ public class CardService {
         if (from.getBalance().compareTo(request.getAmount()) < 0)
             throw new IllegalArgumentException("Недостаточный баланс");
 
+        if (from.getStatus() != Card.Status.ACTIVE || to.getStatus() != Card.Status.ACTIVE) {
+            throw new IllegalArgumentException("Перевод возможен только если карта активна");
+        }
+
         from.setBalance(from.getBalance().subtract(request.getAmount()));
         to.setBalance(to.getBalance().add(request.getAmount()));
 
         cardRepository.save(from);
         cardRepository.save(to);
+    }
+
+    private void checkAndUpdateExpiry(Card card) {
+        if (card.getExpiryDate().isBefore(LocalDate.now()) && card.getStatus() != Card.Status.EXPIRED) {
+            card.setStatus(Card.Status.EXPIRED);
+            cardRepository.save(card);
+        }
+    }
+
+    private CardDTO toDtoWithExpiryCheck(Card card) {
+        checkAndUpdateExpiry(card);
+        return toDto(card);
     }
 
     private CardDTO toDto(Card card) {
